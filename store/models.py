@@ -19,7 +19,7 @@ class Product(models.Model):
   category = models.ForeignKey(Category, on_delete=models.CASCADE)
   created_date = models.DateTimeField(auto_now_add=True)
   modified_date = models.DateTimeField(auto_now=True)
-
+  users_wishlist = models.ManyToManyField(Account, related_name="user_wishlist", blank=True)
 
   def get_url(self):
     return reverse('product_detail', args=[self.category.slug, self.slug])

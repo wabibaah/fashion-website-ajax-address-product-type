@@ -2,6 +2,7 @@
 <section class="section-content padding-y bg">
   <div class="container">
     <!-- ============================ COMPONENT 1 ================================= -->
+    {% include 'includes/alerts.html' %}
     <div class="card">
       <div class="row no-gutters">
         <aside class="col-md-6">
@@ -106,9 +107,14 @@
               {% endif %}
               <hr />
               <div class="row">
-                <button type="submit" class="btn btn-success">
-                  <span class="text">Add to Cart</span> <i class="fas fa-shopping-cart"></i>
-                </button>
+                <a
+                  href="{% url 'user_wishlist' single_product.id %}"
+                  class="btn btn-light"
+                  role="buuton"
+                  aria-disabled="true"
+                >
+                  <span class="text">Add to Wishlist</span> <i class="fas fa-star"></i>
+                </a>
               </div>
             </article>
           </form>

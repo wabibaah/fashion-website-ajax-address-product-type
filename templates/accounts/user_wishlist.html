@@ -1,0 +1,60 @@
+{% extends 'base.html' %} {% block content %}
+<section class="section-content padding-y bg">
+  {% include 'includes/alerts.html' %}
+  <div class="container">
+    <div class="row">
+      <!-- dashboard sidebar -->
+      {% include 'includes/dashboard_sidebar.html' %}
+      <main class="col-md-9">
+        <article class="card">
+          <header class="card-header">
+            <span><strong class="d-inline-block mr-3">Your Wish List: </strong></span>
+            <span>({{wishlist_count}}) items found</span>
+            <hr />
+            <span>View and Edit Wishlist</span>
+          </header>
+          <div class="card-body">
+            <div class="row">
+              {% if wishlist %} {% for product in wishlist %}
+              <div class="col-md-4">
+                <figure class="card card-product-grid">
+                  <div class="img-wrap">
+                    <a href="{{ product.get_url }}"><img src="{{product.images.url}}" /></a>
+                  </div>
+                  <!-- img-wrap.// -->
+                  <figcaption class="info-wrap">
+                    <div class="fix-height">
+                      <a href="{{ product.get_url }}" class="title">{{product.product_name}}</a>
+                      <div class="price-wrap mt-2">
+                        <span class="price">${{product.price}}</span>
+                        <!-- <del class="price-old">$500</del> -->
+                      </div>
+                      <!-- price-wrap.// -->
+                    </div>
+                    <a href="{{ product.get_url }}" class="btn btn-block btn-primary mb-3"
+                      >View Product Details</a
+                    >
+                    <a href="{% url 'user_wishlist' product.id %}" class="btn btn-block btn-light"
+                      >Remove from Wishlist</a
+                    >
+                  </figcaption>
+                </figure>
+              </div>
+              {% endfor %} {% else %}
+              <div>
+                <h3>No product in your wish list</h3>
+              </div>
+              {% endif %}
+              <!-- col.// -->
+            </div>
+            <!-- row.// -->
+          </div>
+          <!-- card-body .// -->
+        </article>
+        <!-- order-group.// -->
+      </main>
+    </div>
+    <!-- row.// -->
+  </div>
+</section>
+{% endblock %}

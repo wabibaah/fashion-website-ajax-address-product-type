@@ -21,6 +21,10 @@ urlpatterns = [
   path('change_password/', views.change_password, name='change_password'),
   path('order_detail/<int:order_id>/', views.order_detail, name='order_detail'),
 
+  ### wishlist
+  path('wishlist/', views.wishlist, name='wishlist'),
+  path('wishlist/add_to_wishlist/<int:id>/', views.add_to_wishlist, name='user_wishlist'),
+
 ]
 
 

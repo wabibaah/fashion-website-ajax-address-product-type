@@ -1,11 +1,13 @@
 from django.shortcuts import render, redirect, get_object_or_404
+
 from . forms import RegistrationForm, UserForm, UserProfileForm
 from . models import Account, UserProfile
+from store.models import Product
 from carts.models import Cart, CartItem
 from orders.models import Order, OrderProduct
 from django.contrib import messages, auth
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseRedirect
 
 ## verification email imports
 from django.contrib.sites.shortcuts import get_current_site
@@ -179,6 +181,9 @@ def dashboard(request):
   orders = Order.objects.order_by('-created_at').filter(user_id=request.user.id, is_ordered=True)
   orders_count = orders.count()
 
+  wish_list = Product.objects.filter(users_wishlist=request.user)
+  wish_list_count = wish_list.count()
+
   ### this was done later kraa because we were not having the user profile by then, OK? and i fixed the error myself
   try:
     userprofile = UserProfile.objects.get(user_id=request.user.id)
@@ -187,6 +192,7 @@ def dashboard(request):
   context = {
     'orders_count': orders_count,
     'userprofile': userprofile,
+    'wish_list_count': wish_list_count,
   }
   return render(request, 'accounts/dashboard.html', context) 
 
@@ -354,7 +360,31 @@ def order_detail(request, order_id):
   return render(request, 'accounts/order_detail.html', context)
 
 
+### wishlist feature
+@login_required
+def add_to_wishlist(request, id):
+  product = get_object_or_404(Product, id=id)
 
+  if product.users_wishlist.filter(id=request.user.id).exists():
+    product.users_wishlist.remove(request.user)
+    messages.success(request, product.product_name + " has been removed from your WishList")
+  
+  else:
+    product.users_wishlist.add(request.user)
+    messages.success(request, "Added " + product.product_name + " to your WishList")
+  
+  return HttpResponseRedirect(request.META["HTTP_REFERER"])
+
+
+@login_required
+def wishlist(request):
+  products = Product.objects.filter(users_wishlist=request.user)
+  product_count = products.count()
+  context = {
+    "wishlist": products,
+    "wishlist_count": product_count,
+  }
+  return render(request, 'accounts/user_wishlist.html', context)
 
 
 
