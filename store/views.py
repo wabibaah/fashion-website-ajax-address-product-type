@@ -25,12 +25,16 @@ def store(request, category_slug=None):
     page = request.GET.get('page')
     paged_products = paginator.get_page(page)
     product_count = products.count()
+    
+    
   else:
     products = Product.objects.all().filter(is_available=True).order_by('id')
     paginator = Paginator(products, 3)
     page = request.GET.get('page')
     paged_products = paginator.get_page(page)
     product_count = products.count()
+
+    
 
 
 
@@ -49,6 +53,16 @@ def product_detail(request, category_slug, product_slug):
     
   except Exception as e:
     raise e
+
+  if request.user.is_authenticated:
+    is_wishlist = False
+    if single_product.users_wishlist.filter(id=request.user.id).exists():
+      is_wishlist = True 
+    else:
+      is_wishlist = False
+  else:
+      is_wishlist = False
+
 
   if request.user.is_authenticated:
     ### checking if the user actually bought the product he wants to review
@@ -77,6 +91,7 @@ def product_detail(request, category_slug, product_slug):
     'orderproduct'  : orderproduct,
     'reviews'       : reviews,
     'product_gallery': product_gallery,
+    'is_wishlist'    : is_wishlist,
   }
   return render (request, 'store/product_detail.html', context)
 

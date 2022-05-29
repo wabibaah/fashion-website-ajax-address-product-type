@@ -1,3 +1,5 @@
+
+from store.models import Product
 from . models import Cart, CartItem
 from . views import _cart_id
 
@@ -18,9 +20,10 @@ def counter(request):
       for cart_item in cart_items:
         cart_count = cart_count + cart_item.quantity
     except Cart.DoesNotExist:
-      cart_cout = 0
+      cart_count = 0
 
   return dict(cart_count=cart_count)
+
 
 
 

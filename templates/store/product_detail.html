@@ -113,7 +113,10 @@
                   role="buuton"
                   aria-disabled="true"
                 >
-                  <span class="text">Add to Wishlist</span> <i class="fas fa-star"></i>
+                  <span class="text"></span>
+                    {% if is_wishlist %} Remove from Wishlist {% else %} Add to Wishlist {% endif %}
+                  </span>
+                  <i class="fas fa-star"></i>
                 </a>
               </div>
             </article>
