@@ -8,6 +8,32 @@ from django.db.models import Avg, Count
 
 ### in the store app is where we are doing our product model (hmmm)
 
+
+
+
+class ProductType(models.Model):
+  name = models.CharField(verbose_name=("Product Name"), help_text=("Required"), max_length=255, unique=True)
+  is_active = True
+
+  class Meta:
+    verbose_name = ("Product Type")
+    verbose_name_plural = ("Product Types")
+
+  def __str__(self):
+    return self.name
+
+class ProductSpecification(models.Model):
+  product_type = models.ForeignKey(ProductType, on_delete=models.RESTRICT)
+  name = models.CharField(verbose_name=("Name"), help_text=("Required"), max_length=255)
+
+  class Meta:
+    verbose_name = ("Product Specification")
+    verbose_name_plural = ("Product Specifications")
+
+  def __str__(self):
+    return self.name
+
+
 class Product(models.Model):
   product_name = models.CharField(max_length=200, unique=True)
   slug = models.SlugField(max_length=200, unique=True)
@@ -16,11 +42,14 @@ class Product(models.Model):
   images = models.ImageField(upload_to='photos/products')
   stock = models.IntegerField()
   is_available = models.BooleanField(default=True)
-  category = models.ForeignKey(Category, on_delete=models.CASCADE)
+  category = models.ForeignKey(Category, on_delete=models.RESTRICT)
   created_date = models.DateTimeField(auto_now_add=True)
   modified_date = models.DateTimeField(auto_now=True)
   users_wishlist = models.ManyToManyField(Account, related_name="user_wishlist", blank=True)
   is_wishlist  = models.BooleanField(default=False)
+  product_type = models.ForeignKey(ProductType, on_delete=models.RESTRICT)
+  regular_price = models.DecimalField(verbose_name=("Regular price"), max_digits=6, decimal_places=2)
+  discount_price = models.DecimalField(verbose_name=("Discount price"), max_digits=6, decimal_places=2)
 
   def get_url(self):
     return reverse('product_detail', args=[self.category.slug, self.slug])
@@ -41,6 +70,15 @@ class Product(models.Model):
     if reviews['count'] is not None:
       count = int(reviews['count'])
     return count 
+
+  def discount (self):
+    return round(((self.regular_price - self.discount_price  ) / self.regular_price) * 100)
+
+
+class ProductSpecificationValue(models.Model):
+  product = models.ForeignKey(Product, on_delete=models.CASCADE)
+  specification = models.ForeignKey(ProductSpecification, on_delete=models.RESTRICT)
+  value = models.CharField(verbose_name=("value"), help_text=("Product Specificaion Value"), max_length=255)
 
 
 
@@ -96,10 +134,6 @@ class ProductGallery(models.Model):
   class Meta:
     verbose_name = 'productgallery'
     verbose_name_plural = 'product gallery' ### we don't want product galleries becasue it doesn't make sense
-
-
-
-
 
 
 

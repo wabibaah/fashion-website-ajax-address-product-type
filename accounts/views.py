@@ -126,7 +126,9 @@ def login(request):
         # next=/cart/checkout (we are spliting it into a dictionary with next as the key and the rest as the value)
         params = dict(x.split('=') for x in query.split('&'))
         # print('params ==>>>', params)
-        if 'next' in params:
+        # next=/accounts/wishlist/add_to_wishlist/1/
+
+        if 'next' in params:        
           nextPage = params['next']
           return redirect(nextPage)
       except:

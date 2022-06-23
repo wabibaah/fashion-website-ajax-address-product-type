@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Product, Variation, ReviewRating, ProductGallery
+from .models import Product, ProductSpecification, ProductSpecificationValue, ProductType, Variation, ReviewRating, ProductGallery
 import admin_thumbnails
 
 # Register your models here.
@@ -8,6 +8,25 @@ class ProductGalleryInline(admin.TabularInline):
   model = ProductGallery
   extra = 1
 
+
+
+class VariationAdmin(admin.ModelAdmin):
+  list_display   = ('product', 'variation_category', 'variation_value', 'is_active')
+  list_editable  = ('is_active',)
+  list_filter    = ('product', 'variation_category', 'variation_value')
+
+class ProductSpecificationInline(admin.TabularInline):
+  model = ProductSpecification
+
+@admin.register(ProductType)
+class ProductTypeAdmin(admin.ModelAdmin):
+  inlines = [
+    ProductSpecificationInline
+  ]
+
+class ProductSpecificationValueInline(admin.TabularInline):
+  model = ProductSpecificationValue
+
 ### we have to make way for slug auto populate
 class ProductAdmin(admin.ModelAdmin):
   ### this is what will display at the admin side about each product for us to see
@@ -15,14 +34,7 @@ class ProductAdmin(admin.ModelAdmin):
   ## pre populated field
   prepopulated_fields = {'slug': ('product_name',)}
 
-  inlines = [ProductGalleryInline]
-
-class VariationAdmin(admin.ModelAdmin):
-  list_display   = ('product', 'variation_category', 'variation_value', 'is_active')
-  list_editable  = ('is_active',)
-  list_filter    = ('product', 'variation_category', 'variation_value')
-
-
+  inlines = [ProductGalleryInline, ProductSpecificationValueInline]
 
 admin.site.register(Product, ProductAdmin)
 admin.site.register(Variation, VariationAdmin)
