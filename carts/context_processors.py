@@ -24,6 +24,28 @@ def counter(request):
 
   return dict(cart_count=cart_count)
 
+def wishlist_counter(request):
+  wishlist_count = 0
+  if 'admin' in request.path:
+    return {}
+  
+  else:
+    try:
+      if request.user.is_authenticated:
+        products = Product.objects.filter(users_wishlist=request.user)
+        wishlist_count = products.count()
+      else:
+        products = None
+        wishlist_count = 0
+    except:
+      products = None
+      wishlist_count = 0
+      
+
+  return dict(wishlist_count = wishlist_count)
+    
+
+
 
 
 

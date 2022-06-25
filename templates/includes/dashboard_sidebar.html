@@ -18,6 +18,11 @@
       href="{% url 'wishlist' %}"
       >My Wishlist</a
     >
+    <a
+      class="list-group-item {% if '/addresses/' in request.path %}active{% endif %}"
+      href="{% url 'addresses' %}"
+      >Set Delivery Address</a
+    >
 
     <a
       class="list-group-item {% if '/edit_profile/' in request.path %}active{% endif %}"

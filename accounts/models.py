@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
+import uuid
 
 # Create your models here.
 
@@ -83,19 +84,41 @@ class Account(AbstractBaseUser):
 
 class UserProfile(models.Model):
   user = models.OneToOneField(Account, on_delete=models.CASCADE) # you can have only one profile for only one account
-  address_line_1 = models.CharField( blank=True , max_length=100)
-  address_line_2 = models.CharField(blank=True , max_length=100)
   profile_picture = models.ImageField(default='default_profile_pic.png', upload_to='userprofile', blank=True, null=True)
-  city = models.CharField(max_length=20)
-  state = models.CharField(max_length=20)
-  country = models.CharField(max_length=20)
+  region = models.CharField(max_length=50)
+  country = models.CharField(max_length=50)
+  town = models.CharField(max_length=50)
+  # address_line_1 = models.CharField( blank=True , max_length=100)
+  # address_line_2 = models.CharField(blank=True , max_length=100)
 
   def __str__(self):
     return self.user.first_name   
     ### the user is in the UserProfile and the first_name is in the Account  model
 
-  def full_address(self):
-    return f'{self.address_line_1} {self.address_line_2}'
+  # def full_address(self):
+  #   return f'{self.address_line_1} {self.address_line_2}'
+
+class Address(models.Model):
+  id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+  customer = models.ForeignKey(Account, verbose_name=("Customer"), on_delete=models.CASCADE)
+  full_name = models.CharField(max_length=150)
+  phone = models.CharField(max_length=50) 
+  postcode = models.CharField(max_length=50)
+  address_line = models.CharField(max_length=255)
+  address_line2 = models.CharField(max_length=255)
+  town_city = models.CharField(max_length=150)
+  region = models.CharField(max_length=150)
+  delivery_instructions = models.CharField(max_length=255)
+  created_at = models.DateTimeField(auto_now_add=True)
+  created_at = models.DateTimeField(auto_now=True)
+  default = models.BooleanField(default=False)
+
+  class Meta:
+    verbose_name = "Address"
+    verbose_name_plural = "Addresses"
+
+  def __str__(self):
+    return "Address"
 
 
 

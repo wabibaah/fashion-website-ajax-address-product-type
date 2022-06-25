@@ -1,7 +1,9 @@
+from email.policy import default
+from django.urls import reverse
 from django.shortcuts import render, redirect, get_object_or_404
 
-from . forms import RegistrationForm, UserForm, UserProfileForm
-from . models import Account, UserProfile
+from . forms import RegistrationForm, UserForm, UserProfileForm, UserAddressForm
+from . models import Account, Address, UserProfile
 from store.models import Product
 from carts.models import Cart, CartItem
 from orders.models import Order, OrderProduct
@@ -161,12 +163,10 @@ def activate(request, uidb64, token):
 
     userprofile =  UserProfile.objects.create(
       user=user, 
-      address_line_1='', 
-      address_line_2='', 
-      city='', 
-      state='', 
+      town='', 
+      region='', 
       country='GHANA', 
-      profile_picture='/static/images/default_profile_pic.png',
+      profile_picture='/userprofile/default_profile_pic.png',
     )
 
     userprofile.save()
@@ -375,25 +375,73 @@ def add_to_wishlist(request, id):
     product.users_wishlist.add(request.user)
     messages.success(request, "Added " + product.product_name + " to your WishList")
   
-  return HttpResponseRedirect(request.META["HTTP_REFERER"])
+  return redirect(reverse('product_detail', args=[product.category, product.slug] ))
+  # return HttpResponseRedirect(request.META["HTTP_REFERER"])
 
 
 @login_required
 def wishlist(request):
   products = Product.objects.filter(users_wishlist=request.user)
-  product_count = products.count()
+  # product_count = products.count()
   context = {
     "wishlist": products,
-    "wishlist_count": product_count,
+    # "wishlist_count": product_count,
   }
   return render(request, 'accounts/user_wishlist.html', context)
 
+@login_required
+def view_address(request):
+  addresses = Address.objects.filter(customer = request.user)
+  context = {
+    'addresses': addresses
+  }
+  return render(request, 'accounts/addresses.html', context)
 
+@login_required
+def add_address(request):
+  if request.method == "POST":
+    address_form = UserAddressForm(data = request.POST)
+    if address_form.is_valid():
+      address_form = address_form.save(commit=False)
+      address_form.customer = request.user
+      address_form.save()
+      return redirect('addresses')
+  else:
+    address_form = UserAddressForm()
+    
+  context = {
+    'address_form': address_form,
+  }
+  return render (request, 'accounts/edit_address.html', context)
 
+@login_required
+def edit_address(request, id):
+  if request.method == 'POST':
+    address = Address.objects.get(pk=id, customer=request.user)
+    address_form = UserAddressForm(instance=address, data=request.POST)
 
+    if address_form.is_valid():
+      address_form.save()
+      return redirect('addresses')
+  else:
+    address = Address.objects.get(pk=id, customer=request.user)
+    address_form = UserAddressForm(instance=address)
+    
+  context = {
+    'address_form': address_form,
+  }
+  return render(request, 'accounts/edit_address.html', context)
 
+@login_required
+def delete_address(request, id ):
+  Address.objects.filter(pk=id, customer=request.user).delete()
+  return redirect('addresses')
 
-
+@login_required
+def set_default_address(request, id):
+  Address.objects.filter(customer=request.user, default=True).update(default=False)
+  Address.objects.filter(pk=id, customer=request.user).update(default=True)
+  return redirect('addresses')
 
 
 
@@ -462,3 +510,7 @@ def wishlist(request):
 
 ### we must fix the error of the user not having a profile picture
 ### We must fix the issue of the user not pay for the same order twice 
+
+
+# in the case of the edit address, we are passing in the customer in addition to the address id so that no body can just type in any random address and get that address page (like we use to do in betting)
+
