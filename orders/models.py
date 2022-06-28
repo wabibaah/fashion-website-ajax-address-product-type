@@ -1,5 +1,6 @@
 from django.db import models
 from accounts.models import Account
+from carts.models import CartItem
 from store.models import Product, Variation
 
 
@@ -73,6 +74,11 @@ class OrderProduct(models.Model):
   def __str__(self):
     return self.product.product_name
 
+## for analytics on those who actually went to the paystack page and reversed their decision
+class PaymentIntent(models.Model):
+  referrer  = models.URLField()
+  order_number = models.CharField(max_length=20)
+  user = models.ForeignKey(Account, on_delete=models.SET_NULL, null=True)
 
 
 

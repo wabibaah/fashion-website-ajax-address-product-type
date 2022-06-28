@@ -58,8 +58,12 @@
                         <p class="text-muted small">
                           {% if cart_item.variations.all %}
                           <!--  -->
-                          {% for item in cart_item.variations.all %} {{ item.variation_category |
-                          capfirst }}: {{ item.variation_value | capfirst }}
+                          {% for item in cart_item.variations.all %}
+                          <!--  -->
+                          {{ item.variation_category |capfirst }}:
+                          <!--  -->
+                          {{ item.variation_value |capfirst }}
+
                           <br />
                           {% endfor %}
                           <!--  -->
@@ -110,6 +114,9 @@
             </div>
           </div>
           <!-- card-body.// -->
+          <div class="my-5 text-center">
+            <button class="btn btn-danger" id="paystack-btn">Pay with paystack</button>
+          </div>
         </div>
         <!-- card.// -->
       </aside>
@@ -144,10 +151,14 @@
 
   var amount = "{{ grand_total }}";
   var url = "{% url 'payments' %}";
+  var paystackUrl = "{% url 'paystack-payment' %}";
   var csrftoken = getCookie("csrftoken");
   var orderID = "{{ order.order_number }}";
   var payment_method = "Paypal";
   var redirect_url = "{% url 'order_complete' %}";
+
+  // / Paystack
+  const paystackBtn = document.getElementById("paystack-btn");
 
   // Render the PayPal button into #paypal-button-container
   paypal
@@ -215,5 +226,35 @@
       },
     })
     .render("#paypal-button-container");
+
+  paystackBtn.addEventListener("click", (e) => {
+    data = {
+      orderID,
+    };
+    function sendPayStackData() {
+      fetch(paystackUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": csrftoken,
+        },
+        body: JSON.stringify(data),
+      })
+        .then((response) => response.json()) // very very important.
+        .then(function (res) {
+          console.log("Data", res);
+          if (res["payment_url"]) {
+            // redirect the customer
+            window.location.href = res["payment_url"];
+          } else {
+            console.log("error");
+          }
+        })
+        .catch((e) => {
+          console.log("e");
+        });
+    }
+    sendPayStackData();
+  });
 </script>
 {% endblock %}

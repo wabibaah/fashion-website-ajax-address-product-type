@@ -1,16 +1,175 @@
+
+
 from django.shortcuts import render, redirect
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
+from django.conf import settings
 import datetime
 import json
 
-from . models import Order, Payment, OrderProduct
+import requests
+
+from orders.helpers import verify_webhook
+
+from . models import Order, Payment, OrderProduct, PaymentIntent
 from carts.models import CartItem
 from . forms import OrderForm
 from store.models import Product
 from django.core.mail import EmailMessage
 from django.template.loader import render_to_string
+from ipware import get_client_ip
+from django.views.decorators.csrf import csrf_exempt
 
 # Create your views here.
+
+def paystackPayment(request):
+  data = json.loads(request.body)
+
+  order = Order.objects.get(user=request.user, is_ordered=False, order_number=data['orderID'])
+  cart_items = CartItem.objects.filter(user=order.user)
+  cart_count = cart_items.count()
+
+  if cart_count <= 0:
+    return redirect('store')
+  
+  data = {
+    "name": "Payment for Products on GreatKart Website",
+    "amount": float(order.order_total) * 100, 
+    "description": f"Payment for {cart_count} items ",
+    "collect_phone": True,
+    # "redirect_url": "he will do it"
+  }
+
+  header = {
+    "Authorization": f"Bearer {settings.PAYSTACK_SECRET}",
+	  "Content-Type": "application/json",
+  }
+
+  response = requests.post('https://api.paystack.co/page', json=data , headers=header)
+
+  if response.status_code == 200:
+    response_data = response.json()
+    slug = response_data['data']['slug']
+    redirect_url = f"https://paystack.com/pay/{slug}"
+
+    ### this place means that we are now on the paystack platform and the user can continue payment or decline paymet
+    PaymentIntent.objects.create(referrer = redirect_url, order_number=order.order_number, user=request.user)
+
+    return JsonResponse({
+      'payment_url': redirect_url
+    })
+
+  return JsonResponse({
+    'error': "Sorry service not available"
+  })
+
+
+@csrf_exempt
+def webhook(request):
+  if request.method == "POST":
+    ip, is_routable = get_client_ip(request)
+
+    if ip in settings.PAYSTACK_IPS and verify_webhook(request):
+      response = json.loads(request.body)
+      if response['event'] == "charge.success":
+        first_name = response['data']['customer']['first_name']
+        last_name = response['data']['customer']['last_name']
+        phone = response['data']['customer']['phone']
+        email = response['data']['customer']['email']
+        customer_id = response['data']['customer']['id']
+        amount = int(response['data']['amount'])
+        referrer = response['data']['metadata']['referrer']
+        payment_status = response['data']['status']
+        payment_id = response['data']['reference']
+        payment_channel = response['data']['authorization']['channel']
+        payment_card_type = response['data']['authorization']['card_type']
+        payment_bank = response['data']['authorization']['bank']
+        payment_country = response['data']['authorization']['country_code']
+        payment_brand = response['data']['authorization']['brand']
+
+
+        payment_intent = PaymentIntent.objects.get(referrer=referrer)
+
+        order = Order.objects.get(user=payment_intent.user, is_ordered=False, order_number=payment_intent.order_number)
+
+
+        payment = Payment(
+          user = payment_intent.user,
+          payment_id = payment_id,
+          payment_method = "Paystack",
+          amount_paid = amount,
+          status = payment_status,
+        )
+
+        payment.save()
+
+        paystack_info = {
+
+        }
+
+        order.payment = payment 
+        order.is_ordered = True ### because they have paid //
+        order.save() 
+
+        cart_items = CartItem.objects.filter(user=payment_intent.user)
+
+        for item in cart_items:
+          orderproduct = OrderProduct()
+          orderproduct.order_id = order.id
+          orderproduct.payment = payment
+          orderproduct.user_id = payment_intent.user.id
+          orderproduct.product_id = item.product_id
+          orderproduct.quantity = item.quantity
+          orderproduct.product_price = item.product.price
+          orderproduct.ordered = True ### after i am done i will change it order.ordered field
+          orderproduct.save()
+
+          cart_item = CartItem.objects.get(id=item.id)
+          product_variation = cart_item.variations.all()
+          orderproduct = OrderProduct.objects.get(id=orderproduct.id)   # we are using the id because the orderproduct has saved and therefore we can use the id
+          orderproduct.variations.set(product_variation)
+          orderproduct.save()
+
+          ### reduce the quantity of the sold products
+          product = Product.objects.get(id=item.product_id)
+          product.stock -= item.quantity
+          product.save()
+          ### i checked and the atx jeans 5 (2 + 2 + 1) was reduced to give me 95 instead of 100
+          ### and assignments will be if the person reverses the products we must re add them back to it
+          ### you can do this and even add more models and wishlists kraa for inside bro
+        
+        ### clear cart
+        CartItem.objects.filter(user=payment_intent.user).delete()
+
+        ### send order received email to customer
+        mail_subject = 'Thank you for your order on moses-greatkart!'
+        message = render_to_string('orders/order_received_email.html', {
+          'user': payment_intent.user,
+          'order': order,
+        })
+        ### write a code to store something to proof that email was sent so that users won't lie about it
+        ### also see how you can make it come in sms format
+        ### how to do your own mobile money and more with sms and django
+        
+        to_email = payment_intent.user.email
+        send_email = EmailMessage(mail_subject, message, to=[to_email,])
+        send_email.send()
+
+        
+        data = {
+          'order_number': order.order_number,
+          'transID': payment.payment_id,
+        }
+        return HttpResponse(200)
+        
+  
+  return HttpResponseForbidden()
+          
+
+
+
+
+
+
 
 
 def payments(request):
@@ -18,7 +177,7 @@ def payments(request):
   ### the information from paypal land in our frontend(browser) and we pass it through fetch to the backend and we can now take it to the payment model
   # print(body)
   order = Order.objects.get(user=request.user, is_ordered=False, order_number=body['orderID'])
-  ### if is_ordered is now, will the payment go through, maybe an if else or try except function can be created
+  ### if is_ordered is now, will the payment go through, maybe an if else or try except function can be created (dummy, you will not even see the order in the first place, ofui)
   payment = Payment(
     user = request.user,
     payment_id = body['transID'],
@@ -107,7 +266,7 @@ def place_order(request, total=0, quantity=0):
     total +=  (cart_item.product.price * cart_item.quantity)
     quantity += cart_item.quantity
   
-  tax = 0.02 * total
+  tax = (2 * total) / 100
   grand_total = total + tax
 
 
