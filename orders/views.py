@@ -195,6 +195,17 @@ def paymentConfirm(request):
     for i in ordered_products:
       subtotal += (i.product_price * i.quantity)
 
+    mail_subject = 'Thank you for your order!'
+    message = render_to_string('orders/order_received_email.html', {
+      'user': request.user,
+      'order': order,
+    })
+  
+  
+    to_email = request.user.email
+    send_email = EmailMessage(mail_subject, message, to=[to_email])
+    send_email.send()
+
     context = {
       'order': order,
       'ordered_products': ordered_products,
