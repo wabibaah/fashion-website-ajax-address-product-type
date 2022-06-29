@@ -168,5 +168,6 @@ EMAIL_USE_TLS = config('EMAIL_USE_TLS', cast=bool)
 PAYSTACK_SECRET = config('PAYSTACK_SECRET')
 PAYSTACK_IPS = ['52.31.139.75', '52.49.173.169', '52.214.14.220']
 
-
+## website config
+HOST_URL = 'https://586f-154-160-26-179.eu.ngrok.io'
 

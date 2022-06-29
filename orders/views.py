@@ -1,5 +1,6 @@
 
 
+
 from django.shortcuts import render, redirect
 from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
 from django.conf import settings
@@ -28,6 +29,8 @@ def paystackPayment(request):
   cart_items = CartItem.objects.filter(user=order.user)
   cart_count = cart_items.count()
 
+  request.session['order_number'] = data['orderID']
+
   if cart_count <= 0:
     return redirect('store')
   
@@ -36,7 +39,7 @@ def paystackPayment(request):
     "amount": float(order.order_total) * 100, 
     "description": f"Payment for {cart_count} items ",
     "collect_phone": True,
-    # "redirect_url": "he will do it"
+    'redirect_url': f"{settings.HOST_URL}/orders/payment-confirm",
   }
 
   header = {
@@ -53,6 +56,8 @@ def paystackPayment(request):
 
     ### this place means that we are now on the paystack platform and the user can continue payment or decline paymet
     PaymentIntent.objects.create(referrer = redirect_url, order_number=order.order_number, user=request.user)
+
+    request.session['referrer'] = redirect_url
 
     return JsonResponse({
       'payment_url': redirect_url
@@ -140,31 +145,72 @@ def webhook(request):
         ### clear cart
         CartItem.objects.filter(user=payment_intent.user).delete()
 
-        ### send order received email to customer
-        mail_subject = 'Thank you for your order on moses-greatkart!'
-        message = render_to_string('orders/order_received_email.html', {
-          'user': payment_intent.user,
-          'order': order,
-        })
-        ### write a code to store something to proof that email was sent so that users won't lie about it
-        ### also see how you can make it come in sms format
-        ### how to do your own mobile money and more with sms and django
+
+        # ### send order received email to customer
+        # mail_subject = 'Thank you for your order on moses-greatkart!'
+        # message = render_to_string('orders/order_received_email.html', {
+        #   'user': payment_intent.user,
+        #   'order': order,
+        # })
+        # ### write a code to store something to proof that email was sent so that users won't lie about it
+        # ### also see how you can make it come in sms format
+        # ### how to do your own mobile money and more with sms and django
         
-        to_email = payment_intent.user.email
-        send_email = EmailMessage(mail_subject, message, to=[to_email,])
-        send_email.send()
+        # to_email = payment_intent.user.email
+        # send_email = EmailMessage(mail_subject, message, to=[to_email,])
+        # send_email.send()
 
         
-        data = {
-          'order_number': order.order_number,
-          'transID': payment.payment_id,
-        }
+        # data = {
+        #   'order_number': order.order_number,
+        #   'transID': payment.payment_id,
+        # }
         return HttpResponse(200)
         
   
   return HttpResponseForbidden()
-          
 
+
+def paymentConfirm(request):
+  order_number = ''
+  if 'order_number' in request.session:
+    order_number = request.session['order_number']
+    # del request.session['order_number'] 
+  referrer = ''
+  if 'referrer' in request.session:
+    referrer = request.session['referrer']
+    # del request.session['referrer'] 
+  
+  
+  try:
+    payment_intent = PaymentIntent.objects.get(referrer=referrer, order_number=order_number, user=request.user)
+
+    order = Order.objects.get(user=payment_intent.user, is_ordered=True, order_number=order_number)
+    ordered_products = OrderProduct.objects.filter(order_id=order.id)
+
+    payment_id = order.payment.payment_id # to know that the payment can be used too
+    payment = Payment.objects.get(payment_id=payment_id)
+
+    subtotal = 0
+    for i in ordered_products:
+      subtotal += (i.product_price * i.quantity)
+
+    context = {
+      'order': order,
+      'ordered_products': ordered_products,
+      'order_number': order.order_number,
+      'transID': payment.payment_id,
+      'payment': payment,
+      'subtotal': subtotal,
+      'payment_intent': payment_intent.referrer,
+      'payment_intent_user': payment_intent.user,
+      'payment_intent_order_number': payment_intent.order_number,
+    }
+    return render(request, 'orders/order_complete.html', context)
+    
+  except (Payment.DoesNotExist, Order.DoesNotExist):
+    return redirect('home')
+  
 
 
 
@@ -319,6 +365,7 @@ def place_order(request, total=0, quantity=0):
     return redirect('checkout')
 
 
+
 def order_complete(request):
   order_number = request.GET.get('order_number')
   transID  = request.GET.get('payment_id')  
@@ -332,10 +379,6 @@ def order_complete(request):
     subtotal = 0
     for i in ordered_products:
       subtotal += (i.product_price * i.quantity)
-    
-    
-    
-
 
     context = {
       'order': order,

@@ -5,7 +5,12 @@
 {% block content %}
 
 <div class="container" style="margin-top: 50px">
-  <center><i class="fas fa-check-circle" style="font-size: 72px; margin-bottom: 20px; color: #28a745"></i></center>
+  <center>
+    <i
+      class="fas fa-check-circle"
+      style="font-size: 72px; margin-bottom: 20px; color: #28a745"
+    ></i>
+  </center>
   <h2 class="text-center">Payment Successful</h2>
   <br />
   <div class="text-center">
@@ -13,7 +18,17 @@
   </div>
 </div>
 
-<div class="container" style="margin: 0 auto; width: 50%; padding: 50px; background: #f1f1f1; margin-top: 50px; margin-bottom: 50px">
+<div
+  class="container"
+  style="
+    margin: 0 auto;
+    width: 50%;
+    padding: 50px;
+    background: #f1f1f1;
+    margin-top: 50px;
+    margin-bottom: 50px;
+  "
+>
   <div class="row invoice row-printable">
     <div class="col-md-12">
       <!-- col-lg-12 start here -->
@@ -24,7 +39,13 @@
             <!-- Start .row -->
             <div class="col-lg-6">
               <!-- col-lg-6 start here -->
-              <div class="invoice-logo"><img src="{% static '/images/logo.png' %}" alt="Invoice logo" style="max-height: 40px" /></div>
+              <div class="invoice-logo">
+                <img
+                  src="{% static '/images/logo.png' %}"
+                  alt="Invoice logo"
+                  style="max-height: 40px"
+                />
+              </div>
             </div>
             <!-- col-lg-6 end here -->
             <div class="col-lg-6">
@@ -49,6 +70,7 @@
                     <li><strong>Transaction ID</strong> {{ transID }}</li>
                     <li><strong>Order Date:</strong> {{ order.created_at }}</li>
                     <li><strong>Status:</strong> {{ payment.status }}</li>
+                    <li><strong>Payment Method:</strong> {{ payment.payment_method }}</li>
                   </ul>
                 </div>
               </div>
@@ -71,7 +93,11 @@
                           <p class="text-muted small">
                             {% if item.variations.all %}
                             <!--  -->
-                            {% for i in item.variations.all %} {{ i.variation_category | capfirst }}: {{ i.variation_value | capfirst }}
+                            {% for i in item.variations.all %}
+                            <!--  -->
+                            {{ i.variation_category | capfirst }}:
+                            <!--  -->
+                            {{ i.variation_value | capfirst }}
                             <br />
                             {% endfor %}
                             <!--  -->
